@@ -1,0 +1,16 @@
+$def with (pagetitle, image, displays, imagename)
+
+$var pagetitle = pagetitle
+$var displays = displays
+
+
+
+<form method="POST" enctype="multipart/form-data" action="rename">
+	<fieldset>
+		<input type="hidden" name="image" value="$image" placeholder="$imagename">
+		Rename $imagename?<br><br>
+		<input type="text" name="newname">
+		<br><br>
+		<input type="submit" value="Rename">
+	</fieldset>
+</form>

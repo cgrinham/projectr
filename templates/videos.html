@@ -1,0 +1,27 @@
+$def with (videolist, pagetitle, message)
+
+$var pagetitle = pagetitle
+
+<form name="slideshow" method="post">
+<fieldset>
+<input type="submit" value="PROJECT" class="slideshow-project">
+<input type="hidden" name="action" value="slideshow">
+
+<div id="videolist">
+
+$for video in videolist:
+    <div class="tile" data-image="$video">
+        <div class="actions">
+        	<div class="delete"><a href="/delete?video=$video"><img src="static/img/delete.png" alt="Delete"></a></div>
+        	<div class="rename"><a href="/rename?video=$video"><img src="static/img/rename.png" alt="Rename"></a></div>
+        	<div class="project"><img src="static/img/move.png" alt="Project"></div>
+        	<input class="slideshowcheck" type="checkbox" name="$video" value="static/videos/$video">
+        </div>
+        
+        <div class="tilelabel"><a href="static/videos/$video">$video</a></div>
+        
+    </div><!-- End video Tile -->
+
+</div><!-- End video List -->
+</fieldset>
+</form><!-- End Slideshow Form -->

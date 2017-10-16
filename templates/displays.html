@@ -1,0 +1,51 @@
+$def with (pagetitle, displays, alive, message)
+
+$var pagetitle = pagetitle
+$var displays = displays
+
+$alive
+
+<a href="/newdisplay">New Static Display</a>
+
+<form method="POST" enctype="multipart/form-data" action="settings">
+	<fieldset class="align-center vertical-padding-40">
+		<table>
+			<tr>
+				<th>Name</th>
+				<th>IP Address</th>
+				<th>Sync</th>
+				<th>Alive?</th>
+				<th>Remove</th>
+			</tr>
+			$for display in displays:
+				<tr>
+					<td>$displays[display]["name"]</td>
+					<td>$displays[display]["ip"]</td>
+					<td class="sync" data-display="$display">O</td>
+					<td>
+						$if display in alive:
+							Yes
+						$else:
+							No
+					</td>
+					<td><input type="checkbox"></td>
+				</tr>
+		</table><br>
+		<input type="submit" value="Submit">
+	</fieldset>
+</form>
+<div id="displaylist">
+$for display in displays:
+	$if display in alive:
+		<div class="tile alive">
+	$else:
+		<div class="tile dead">
+	<img src="/static/images/$displays[display]['current']" alt="">
+	
+	<div class="tilelabel">
+	<a href="/display/$display">$displays[display]['name']</a><br>
+	$displays[display]['ip']
+	</div>
+	    
+	</div><!-- End Image Tile -->
+</div>

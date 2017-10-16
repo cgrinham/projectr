@@ -1,0 +1,77 @@
+When resizing, converts to JPG
+
+Make sure delay doesn't count fade (maybe do fade + delay in queue?)
+MAKE SURE DELAY ISN'T SHORTER THAN FADE
+
+tidy up code!
+
+settings:
+image quality
+
+Logo!
+
+folders?
+
+use slideshow queue to stop slideshow?
+check if cross process variables exist
+
+Notice of ongoing slideshow in UI
+Show current view?
+
+
+Build basic multiscreen version with static IPs
+
+
+***
+Database Functions
+
+Table layout:
+ID, filename, name, folder
+
+Upload Image (CHECK IF FILENAME EXISTS)
+Delete Image
+Rename Image
+Move Image to Folder
+
+
+MULTI-SCREEN SUPPORT
+*****
+
+STATIC IPs
+Menu
+Screens
+- Multiscreen
+- Screen 1
+- Screen 2
+
+Sync image folders
+- Delete/rename folders
+
+When asking a projector to display image, ask if they have the image and if not, send it to them
+
+Tell me your screen resolution
+
+
+Static IP
+Database 
+Static IP Address
+Ask projectr what it's name is
+Rename projectr
+
+
+discover screens
+*****
+server runs thread which listens for broadcasts (loop)
+
+client sends broadcast
+
+server creates new thread and replies to broadcast with IP address (BSD sockets?)
+
+Client responds confirming receipt of ip address
+
+server adds client to list of known displays
+
+client switches to projection mode and requests image to project
+
+server sends client files and command to project
+

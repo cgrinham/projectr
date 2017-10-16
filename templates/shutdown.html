@@ -1,0 +1,13 @@
+$def with (pagetitle, displays, message)
+
+$var pagetitle = pagetitle
+$var displays = displays
+
+
+<form method="POST" enctype="multipart/form-data" action="shutdown" id="shutdownform">
+	<fieldset>
+		<button class="shutdownsubmit" data-choice="true">Shutdown</button><button class="shutdownsubmit" data-choice="false">Cancel</button>
+		<input id="choice" type="hidden" name="shutdown" value="false">
+		<input class="hidden" type="submit" value="Submit">
+	</fieldset>
+</form>

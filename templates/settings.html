@@ -1,0 +1,12 @@
+$def with (pagetitle, settingsdict, displays, message)
+
+$var pagetitle = pagetitle
+$var displays = displays
+
+<form method="POST" enctype="multipart/form-data" action="settings">
+	<fieldset class="align-center vertical-padding-40">
+		<p>Maximum slide time is 17 seconds</p>
+		<label for="slideshowlength">Slide Time</label><br><input type="number" name="slideshowlength" value="$settingsdict['slideshow']['delay']"><br><br>
+		<input type="submit" value="Submit">
+	</fieldset>
+</form>

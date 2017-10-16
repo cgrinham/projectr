@@ -1,0 +1,53 @@
+$def with (content)
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Projectr</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<link rel="stylesheet" type="text/css" href="/static/css/style.css">
+	<link rel='shortcut icon' type='image/x-icon' href='/static/favicon.ico' />
+	<script src="/static/js/jquery-2.1.4.min.js"></script>
+	<script src="/static/js/functions.js"></script>
+</head>
+<body>
+
+<!-- SVG Library -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<symbol id="menu" viewBox="0 0 22 22"><path d="M1 5h20c.6 0 1-.4 1-1s-.4-1-1-1h-20c-.6 0-1 .4-1 1s.4 1 1 1zm20 5h-20c-.6 0-1 .4-1 1s.4 1 1 1h20c.6 0 1-.4 1-1s-.4-1-1-1zm0 7h-20c-.6 0-1 .4-1 1s.4 1 1 1h20c.6 0 1-.4 1-1s-.4-1-1-1z"/></symbol>
+</svg>
+
+<div id="page-wrap">
+	<div id="header">
+		<a href="/"><img id="logo" src="static/img/logo.png" alt=""></a>
+		<div id="title">
+			<h1>$content.pagetitle</h1>
+		</div>
+		
+		<svg class="menubutton" id="menubutton"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#menu"></use></svg>
+	</div>
+	<nav>
+		<ul>
+			<li><a href="/">Home</a></li>
+			<li><a href="/upload">Upload</a></li>
+			<li><a href="#slideshow" class="menubutton slideshow">Slideshow</a></li>
+			$if len(content.displays) > 1:
+				<li id="displayswitch"><a>Displays</a></li>
+				<li id="displayslist">
+					<ul>
+					$for display in content.displays:
+						<li><a href="/display/$display">$content.displays[display]["name"]</a></li>
+					</ul>
+				</li>
+
+			<li><a href="/settings">Settings</a></li>
+			<li><a href="/shutdown">Shutdown</a></li>
+		</ul>
+	</nav>
+	<div id="push-wrap">
+		
+		$:content
+
+	</div><!-- End Push Wrap -->
+</div><!-- End Page Wrap -->
+</body>
+</html>

@@ -1,0 +1,13 @@
+$def with (pagetitle, displays, message)
+
+$var pagetitle = pagetitle
+$var displays = displays
+
+
+<form method="POST" enctype="multipart/form-data" action="upload">
+	<fieldset class="align-center vertical-padding-40">
+		<p>Please avoid any files with special characters in their names.</p>
+		<input type="file" name="newimage" accept="image/*"><br><br>
+		<input type="submit" value="Submit">
+	</fieldset>
+</form>
