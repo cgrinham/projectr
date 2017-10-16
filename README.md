@@ -26,8 +26,8 @@ RASPBERY PI SET UP
 SET AUTOLOGIN
 
 
-# Check if logged in via SSH, if not run these
-if [ -z "$SSH_CLIENT" ] ; then
-    python projector.py &
-    python server.py &
-fi
+> # Check if logged in via SSH, if not run these
+> if [ -z "$SSH_CLIENT" ] ; then
+>     python projector.py &
+>     python server.py &
+> fi
