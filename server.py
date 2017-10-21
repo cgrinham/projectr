@@ -16,7 +16,7 @@ import socket
 import pickle
 import struct
 
-# Set up UDP socket port 5005
+# Set up TCP socket port 5005
 
 TCP_PORT = 5006
 
@@ -93,7 +93,8 @@ def db_list_images():
 def db_insert_image(filename):
     """ Insert an image into the database """
     imagename, file_extension = os.path.splitext(filename)
-    filename = "%s.jpg" % ''.join(random.choice('0123456789abcdef') for i in range(16))
+    filename = "%s.jpg" % ''.join(random.choice('0123456789abcdef') for
+                                  i in range(16))
 
     imageid = db.insert('images', filename=filename,
                         imagename=imagename, folder="")
@@ -122,14 +123,20 @@ def write_log(logdata, process=""):
     """ Write to the log """
     if process == "":
         with open("server.log", "a") as myfile:
-            myfile.write("%s : %s" % (datetime.now().strftime('%Y/%m/%d %H:%M'), logdata))
-            print("%s : %s" % (datetime.now().strftime('%Y/%m/%d %H:%M'), logdata))
+            output = "%s : %s" % (datetime.now().strftime('%Y/%m/%d %H:%M'),
+                                  logdata)
+            myfile.write(output)
+            print(output)
 
     else:
         with open("server.log", "a") as myfile:
-            myfile.write("%s : %s : %s" % (datetime.now().strftime('%Y/%m/%d %H:%M'), process, logdata))
-            print("%s : %s : %s" % (datetime.now().strftime('%Y/%m/%d %H:%M'),
-                                    process, logdata))
+            output = "%s : %s : %s" % (
+                datetime.now().strftime('%Y/%m/%d %H:%M'),
+                process,
+                logdata
+                )
+            myfile.write(output)
+            print(output)
 
 
 def rename_image(filename):
@@ -161,8 +168,9 @@ def make_thumbnail(image):
             write_log("Sucessfully resized: %s \n" % image)
         except IOError:
             write_log(
-                "IO Error. %s will be deleted and downloaded properly next sync"
-                 % imagepath)
+                "IO Error. %s will be deleted and "
+                "downloaded properly next sync"
+                % imagepath)
             os.remove(imagepath)
     else:
         write_log("Thumbnail for %s exists \n" % image)
@@ -378,7 +386,7 @@ class Index(object):
             # Wait for reply
             try:
                 current_image = recv_msg(connections[display])
-                write_log("Received UDP data: %s from %s" %
+                write_log("Received TCP data: %s from %s" %
                           (current_image, connections[display]))
             except socket.timeout:
                 write_log("No reply, socket timed out")
@@ -469,7 +477,7 @@ class Videos(object):
             print("action: %s, prop1: %s, prop2: %s" % (action, prop1, prop2))
             message = pickle.dumps({"action": "project",
                                     "video": [os.path.join(VIDEODIR, prop1)]})
-            sock.sendto(message, (UDP_IP, UDP_PORT))
+            sock.sendto(message, (TCP_IP, TCP_PORT))
             print("video to be projected is %s" % prop1)
             return True
         else:
@@ -556,7 +564,8 @@ class Upload(object):
             imagename, file_extension = os.path.splitext(imagename)
             imagename = imagename
 
-            filename = "%s.jpg" % ''.join(random.choice('0123456789abcdef') for i in range(16))
+            filename = "%s.jpg" % ''.join(random.choice('0123456789abcdef') for
+                                          i in range(16))
 
             newimagepath = os.path.join(IMAGEDIR, filename)
 
@@ -603,12 +612,12 @@ class Displays(object):
         print(connections)
         alive = [f for f in connections]
 
-        return render.displays("Displays", PROJECTRS, alive, "")
+        return render.displays("Displays", displays, alive, "")
 
     def POST(self):
         display = web.input().prop1
         message = pickle.dumps({"action": "sync"})
-        sock.sendto(message, (PROJECTRS[display]["ip"], UDP_PORT))
+        sock.sendto(message, (PROJECTRS[display]["ip"], TCP_PORT))
 
         print("sync %s" % display)
 

@@ -96,6 +96,7 @@ def list_files(directory, reverse=False):
 
     return output
 
+
 """ NETWORKING """
 
 
@@ -174,7 +175,7 @@ def client_handler(connection, client_address, cur_queue):
                 write_log(process, "Something went wrong: %s" % e)
 
             write_log(process,
-                      "Received UDP data: %s from %s" % (data, client_address))
+                      "Received TCP data: %s from %s" % (data, client_address))
 
             if slideshowon is True:
                 # If slideshow is running, kill it
@@ -215,11 +216,11 @@ def client_handler(connection, client_address, cur_queue):
             send_msg(connection, "alive")
 
 
-def udp_receiver(cur_queue, connections):
-    """ Receive images via UDP """
-    process = "UDP Receiver"
+def tcp_receiver(cur_queue, connections):
+    """ Receive images via TCP """
+    process = "TCP Receiver"
 
-    # UDP config
+    # TCP config
     tcp_ip = "127.0.0.1"  # local only
     tcp_port = 5006
 
@@ -414,10 +415,10 @@ if __name__ == "__main__":
     # Set up connections dict
     connections = multiprocessing.Manager().dict()
 
-    write_log(process, "Start UDP Receiver")
-    udpprocess = multiprocessing.Process(target=udp_receiver,
+    write_log(process, "Start TCP Receiver")
+    tcpprocess = multiprocessing.Process(target=tcp_receiver,
                                          args=(IMAGEQ, connections))
-    udpprocess.start()
+    tcpprocess.start()
 
     write_log(process, "Start Projector process")
 
@@ -456,7 +457,7 @@ if __name__ == "__main__":
                         print("Close connnection %s" % connection)
                         connection.shutdown(socket.SHUT_RDWR)
                         connection.close()
-                udpprocess.terminate()
+                tcpprocess.terminate()
 
         # Check if there is a new image to be displayed
         if not IMAGEQ.empty():
