@@ -10,24 +10,32 @@ To test in a window.
 This is the version using TCP for communication.
 
 Requirements
-*pi3d
-*python-yaml
-*python-pickle
-*python-webpy
-*python-pil
+* pi3d
+* python-yaml
+* python-pickle
+* python-webpy
+* python-pil
 
+UI
+---
+
+Desktop view:
+
+![Desktop view](/docs/desktop.jpg?raw=true "Desktop View")
+
+Mobile View:
+
+![Mobile view](/docs/mobile.jpg?raw=true "Mobile View")
 
 
 RASPBERY PI SET UP
 ----------
 
-
-
 SET AUTOLOGIN
 
 
-# Check if logged in via SSH, if not run these
-if [ -z "$SSH_CLIENT" ] ; then
-    python projector.py &
-    python server.py &
-fi
+> # Check if logged in via SSH, if not run these
+> if [ -z "$SSH_CLIENT" ] ; then
+>     python projector.py &
+>     python server.py &
+> fi
