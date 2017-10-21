@@ -16,12 +16,18 @@ Requirements
 * python-webpy
 * python-pil
 
+UI
+---
+
+Desktop view:
+![Desktop view](/docs/desktop.jpg?raw=true "Desktop View")
+
+Mobile View:
+![Mobile view](/docs/mobile.jpg?raw=true "Mobile View")
 
 
 RASPBERY PI SET UP
 ----------
-
-
 
 SET AUTOLOGIN
 
