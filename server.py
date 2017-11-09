@@ -18,7 +18,6 @@ import struct
 
 # Set up TCP socket port 5005
 
-
 connections = {}
 
 # Set up URLS
@@ -594,7 +593,9 @@ class Displays(object):
     def POST(self):
         display = web.input().prop1
         message = pickle.dumps({"action": "sync"})
-        sock.sendto(message, (PROJECTRS[display]["ip"],  PROJECTRS[display]["port"]))
+
+        sock.sendto(message, (PROJECTRS[display]["ip"],
+                              PROJECTRS[display]["port"]))
 
         print("sync %s" % display)
 
@@ -617,7 +618,6 @@ class Shutdown(object):
         else:
             print("Don't shutdown")
             raise web.seeother('/')
-
 
 
 SETTINGS = read_settings()
