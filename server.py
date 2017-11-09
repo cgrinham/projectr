@@ -18,29 +18,6 @@ import struct
 
 # Set up TCP socket port 5005
 
-TCP_PORT = 5006
-
-# This should be moved out to a YAML file
-PROJECTRS = {
-    "local": {
-              "ip": "127.0.0.1",
-              "enabled": True,
-              "name": "Centre",
-              "current": ""
-              },
-    "pizero1": {
-                "ip": "192.168.43.36",
-                "enabled": False,
-                "name": "Left",
-                "current": ""
-                },
-    "pizero2": {
-                "ip": "192.168.43.45",
-                "enabled": False,
-                "name": "Right",
-                "current": ""
-                }
-    }
 
 connections = {}
 
@@ -206,7 +183,7 @@ def connect_display(display):
         write_log("Display doesn't exist in connections", process)
 
     # Get display address
-    display_address = (PROJECTRS[display]["ip"], TCP_PORT)
+    display_address = (PROJECTRS[display]["ip"], PROJECTRS[display]["port"])
     # Make new socket it and add to connections dict
     connections[display] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     write_log("Socket made", process)
@@ -231,7 +208,7 @@ def connect_display(display):
 def send_msg_display(display, msg):
     process = "Send Message To Display"
     """ Send a message to a display """
-    write_log("Send message: %s" % msg, process)
+    write_log("Send message to display", process)
     x = 0
     attempts = 1
     while x == 0 and attempts < 4:
@@ -276,7 +253,7 @@ def send_msg_display(display, msg):
                 # Make a new socket
                 del connections[display]
                 # Get display address
-                display_address = (PROJECTRS[display]["ip"], TCP_PORT)
+                display_address = (PROJECTRS[display]["ip"], PROJECTRS[display]["port"])
                 # Make new socket it and add to connections dict
                 connections[display] = socket.socket(socket.AF_INET,
                                                      socket.SOCK_STREAM)
@@ -332,7 +309,7 @@ def init_network(connections):
             if display not in connections:
                 write_log("Display not in existing connections", process)
                 write_log("Connecting to display %s" % display, process)
-                display_address = (PROJECTRS[display]["ip"], TCP_PORT)
+                display_address = (PROJECTRS[display]["ip"], PROJECTRS[display]["port"])
                 connections[display] = socket.socket(socket.AF_INET,
                                                      socket.SOCK_STREAM)
                 write_log("Socket made", process)
@@ -343,7 +320,7 @@ def init_network(connections):
                     write_log("Connected to %s" % display, process)
                     connections[display].settimeout(20)
                 except:
-                    write_log("Something fucked up", process)
+                    write_log("Could not connect", process)
                     del connections[display]
             else:
                 send_msg_display(display, "alive")
@@ -354,7 +331,7 @@ def init_network(connections):
                     write_log("Connection appears to be dead", process)
                     del connections[display]
                     write_log("Connecting to display %s" % display, process)
-                    display_address = (PROJECTRS[display]["ip"], TCP_PORT)
+                    display_address = (PROJECTRS[display]["ip"], PROJECTRS[display]["port"])
                     connections[display] = socket.socket(socket.AF_INET,
                                                          socket.SOCK_STREAM)
                     write_log("Socket made", process)
@@ -617,7 +594,7 @@ class Displays(object):
     def POST(self):
         display = web.input().prop1
         message = pickle.dumps({"action": "sync"})
-        sock.sendto(message, (PROJECTRS[display]["ip"], TCP_PORT))
+        sock.sendto(message, (PROJECTRS[display]["ip"],  PROJECTRS[display]["port"]))
 
         print("sync %s" % display)
 
@@ -642,6 +619,12 @@ class Shutdown(object):
             raise web.seeother('/')
 
 
+
+SETTINGS = read_settings()
+PROJECTRS = SETTINGS["projectors"]
+
 if __name__ == "__main__":
+    # Set up settings
+
     init_network(connections)
     app.run()

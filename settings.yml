@@ -1,2 +1,5 @@
-{fadeduration: 2, lastimage: !!python/unicode 'static/images/176d9f3625566f7f.jpg',
-  slideshow: {delay: 17, loop: true}}
+{!!python/unicode 'fadeduration': 2, !!python/unicode 'lastimage': !!python/unicode 'static/images/b4ba45953e1f2da8.jpg',
+  !!python/unicode 'projectors': {!!python/unicode 'local': {!!python/unicode 'current': !!python/unicode '',
+      !!python/unicode 'enabled': true, !!python/unicode 'ip': !!python/unicode '127.0.0.1',
+      !!python/unicode 'name': !!python/unicode 'Main', !!python/unicode 'port': 5006}},
+  !!python/unicode 'slideshow': {!!python/unicode 'delay': 20, !!python/unicode 'loop': true}}

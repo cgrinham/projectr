@@ -57,7 +57,16 @@ def read_settings(process):
         data = {
                 'slideshow': {'delay': 20, 'loop': True},
                 'fadeduration': 2,
-                'lastimage': u'static/images/logo.jpg'
+                'lastimage': u'static/images/logo.jpg',
+                'projectors': {
+                    'local': {
+                        'ip': '127.0.0.1',
+                        'port': 5006,
+                        'enabled': True,
+                        'name': 'Main',
+                        'current': '',
+                    }
+                }
                 }
         with open('settings.yml', 'w') as outfile:
             outfile.write(yaml.dump(data, default_flow_style=True))
