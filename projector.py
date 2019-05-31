@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import pi3d
 # General
 import os
+import logging
 import time
 import sys
 from datetime import datetime
@@ -23,37 +24,32 @@ Projectr - Projector Process
 Works in tandem with Server Process
 
 """
-
+logging.basicConfig(
+    filename="projector.log",
+    level=logging.INFO,
+    format='%(asctime)s %(thread)s %(levelname)-6s %(funcName)s:%(lineno)-5d %(message)s',
+)
 
 IMAGEDIR = 'static/images/'
 
 """ FUNCTIONS """
 
-
-def write_log(process, logdata):
-    """ Print and write to the log """
-    output = "%s: %s: %s" % (
-            datetime.now().strftime('%Y/%m/%d %H:%M'), process, logdata)
-    with open("projector.log", "a") as myfile:
-        myfile.write(output + "\n")
-    print(output)
-
-
 # Use class for settings?
 def write_settings(process, data):
     """Write the previous image to settings file"""
-    write_log(process, "Writing settings...")
+    logging.info("Writing settings...")
+    logging.info("Writing settings...")
     with open('settings.yml', 'w') as outfile:
         outfile.write(yaml.dump(data, default_flow_style=True))
 
 
 def read_settings(process):
-    write_log(process, "Read settings...")
+    logging.info("Read settings...")
     try:
         return yaml.load(open("settings.yml"))
     except:
-        write_log(process, "Could not read settings")
-        write_log(process, "Writing default settings file")
+        logging.exception("Could not read settings")
+        logging.info("Writing default settings file")
         data = {
                 'slideshow': {'delay': 20, 'loop': True},
                 'fadeduration': 2,
@@ -148,7 +144,7 @@ def slideshow(imagelist, cur_queue, killslideshowq):
     process = "Slideshow Process"
 
     settings = read_settings(process)
-    write_log(process, "Starting slideshow...")
+    logging.info("Starting slideshow...")
     working = True
     while working is True:
         for image in imagelist:
@@ -156,21 +152,21 @@ def slideshow(imagelist, cur_queue, killslideshowq):
             if not killslideshowq.empty():
                 emptyq = killslideshowq.get()
                 if emptyq == "die":
-                    write_log(process, "Killing slideshow for reals")
+                    logging.info("Killing slideshow")
                     working = False  # Make sure while loop breaks
                     break  # break out of for loop
-            write_log(process, "Slideshow: %s" % image)
+            logging.info("Slideshow: %s", image)
             cur_queue.put(image)
             time.sleep(settings["slideshow"]["delay"] + settings["fadeduration"])
 
 
 def client_handler(connection, client_address, cur_queue):
     process = "Client Handler - %s" % os.urandom(8).encode('base_64')
-    print(connections)
+    logging.debug(connections)
     # Is there a slideshow running?
     slideshowon = False
     killslideshowq = multiprocessing.Queue()
-    write_log(process, "Connected to Master")
+    logging.info("Connected to Master")
     while True:
 
         # buffer size is 1024 bytes
@@ -179,16 +175,15 @@ def client_handler(connection, client_address, cur_queue):
         if data != "alive":
             try:
                 data = pickle.loads(data)
-                write_log(process, data)
+                logging.debug(data)
             except TypeError, e:
-                write_log(process, "Something went wrong: %s" % e)
+                logging.exception("Failed to unpickle data")
 
-            write_log(process,
-                      "Received TCP data: %s from %s" % (data, client_address))
+            logging.info("Received TCP data: %s from %s" % (data, client_address))
 
             if slideshowon is True:
                 # If slideshow is running, kill it
-                write_log(process, "Tell Slideshow process to die")
+                logging.info("Tell Slideshow process to die")
                 # Tell slideshow to die
                 killslideshowq.put("die")
                 slideshowon = False
@@ -198,12 +193,11 @@ def client_handler(connection, client_address, cur_queue):
                     cur_queue.put(data["images"][0])
                     slideshowon = False
                 elif "video" in data:
-                    write_log(process,
-                              "Video to project is %s" % data["video"])
+                    logging.info("Video to project is %s", data["video"])
                 else:
-                    write_log(process, "Nothing to project")
+                    logging.info("Nothing to project")
             elif data["action"] == "slideshow":
-                write_log(process, "Start Slideshow Process")
+                logging.info("Start Slideshow Process")
                 ssproc = multiprocessing.Process(target=slideshow,
                                                  args=(data["images"],
                                                        cur_queue,
@@ -219,9 +213,9 @@ def client_handler(connection, client_address, cur_queue):
                 settings = read_settings(process)
                 send_msg(connection, settings["lastimage"])
             else:
-                write_log(process, "Unkown action: %s" % data["action"])
+                logging.info("Unkown action: %s", data["action"])
         else:
-            print("Alive?")
+            logging.info("Alive?")
             send_msg(connection, "alive")
 
 
@@ -237,7 +231,7 @@ def tcp_receiver(cur_queue, connections):
     # Create a TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    write_log(process, 'Starting up on %s port %s' % (tcp_ip, tcp_port))
+    logging.info('Starting up on %s port %s' % (tcp_ip, tcp_port))
 
     # bind server to address
     sock.bind((tcp_ip, tcp_port))
@@ -246,16 +240,15 @@ def tcp_receiver(cur_queue, connections):
     cons = {}
 
     while True:
-        write_log(process, "Waiting for a connection...")
+        logging.info("Waiting for a connection...")
         # Not sure if this is really necessary however,
         # It gives the connection a unique number
         # and adds it to the connactions dictionary
         con_number = str(len(connections) + 1)
-        print(con_number)
+        logging.debug(con_number)
         cons[con_number], client_address = sock.accept()
 
-        write_log(process,
-                  "Starting a new thread for client %s" % str(client_address))
+        logging.info("Starting a new thread for client %s", str(client_address))
         thread.start_new_thread(client_handler, (cons[con_number],
                                 client_address, cur_queue))
 
@@ -277,12 +270,11 @@ class Carousel(object):
 
             settings = read_settings(self.process)
             # Add the image to the queue
-            write_log(self.process, "Last image: %s" % settings["lastimage"])
+            logging.info("Last image: %s" % settings["lastimage"])
             starting_image = settings["lastimage"]
         except:
-            write_log(self.process, "Failed to load settings file")
-            write_log(self.process, sys.exc_info()[0])  # write error to log
-            write_log(self.process, "Loading default image")
+            logging.exception("Failed to load settings file")
+            logging.info("Loading default image")
             # Write new image to settings
             settings = read_settings(self.process)
             settings["lastimage"] = "static/images/logo.jpg"
@@ -370,7 +362,7 @@ class Carousel(object):
             write_settings(self.process, settings)
             settings = read_settings(self.process)
         else:
-            print("Image already projected")
+            logging.warning("Image already projected")
 
     def update(self):
         """ Update image alphas """
@@ -408,7 +400,7 @@ class Carousel(object):
 
 if __name__ == "__main__":
     process = "Main Process"
-    write_log(process, "Christie's Projector")
+    logging.info("Christie's Projector")
 
     # parse command line arguments
     parser = argparse.ArgumentParser(description='Project images.')
@@ -424,12 +416,12 @@ if __name__ == "__main__":
     # Set up connections dict
     connections = multiprocessing.Manager().dict()
 
-    write_log(process, "Start TCP Receiver")
+    logging.info("Start TCP Receiver")
     tcpprocess = multiprocessing.Process(target=tcp_receiver,
                                          args=(IMAGEQ, connections))
     tcpprocess.start()
 
-    write_log(process, "Start Projector process")
+    logging.info("Start Projector process")
 
     if args.test:
         # If testing, create a small display
@@ -471,5 +463,5 @@ if __name__ == "__main__":
         # Check if there is a new image to be displayed
         if not IMAGEQ.empty():
             new_image = IMAGEQ.get()
-            write_log(process, "New image is: %s" % new_image)
+            logging.info("New image is: %s", new_image)
             crsl.pick(new_image)
