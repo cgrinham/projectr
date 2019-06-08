@@ -1,2 +1,10 @@
-*.log
 settings.yml
+*.avi
+*.pyc
+*.db
+*.sublime*
+*.log
+oldversions/*
+*.bak
+static/images/*
+static/videos/*

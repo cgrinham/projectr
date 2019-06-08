@@ -2,7 +2,6 @@ jQuery(document).ready(function() {
 jQuery(function( $ ) {
 
     $('#displayswitch').on('click', function(){
-        
         if ($('#displayslist').css('display') === 'none'){
             $('#displayslist').slideDown();
         } else {

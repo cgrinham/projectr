@@ -1,10 +1,5 @@
-$def with (pagetitle, displays, alive, message)
-
-$var pagetitle = pagetitle
-$var displays = displays
-
-$alive
-
+{% extends 'layout.html' %}
+{% block content %}
 <a href="/newdisplay">New Static Display</a>
 
 <form method="POST" enctype="multipart/form-data" action="settings">
@@ -17,35 +12,39 @@ $alive
 				<th>Alive?</th>
 				<th>Remove</th>
 			</tr>
-			$for display in displays:
+			{% for display_name, display in displays.items() %}
 				<tr>
-					<td>$displays[display]["name"]</td>
-					<td>$displays[display]["ip"]</td>
-					<td class="sync" data-display="$display">O</td>
+					<td>{{display.name}}</td>
+					<td>{{display.ip}}</td>
+					<td class="sync" data-display="{{display_name}}">O</td>
 					<td>
-						$if display in alive:
+						{%if display in alive %}
 							Yes
-						$else:
+						{% else %}
 							No
+						{% endif %}
 					</td>
 					<td><input type="checkbox"></td>
 				</tr>
+			{% endfor %}
 		</table><br>
 		<input type="submit" value="Submit">
 	</fieldset>
 </form>
 <div id="displaylist">
-$for display in displays:
-	$if display in alive:
+{% for display_name, display in displays.items() %}
+	{% if display in alive %}
 		<div class="tile alive">
-	$else:
+	{% else %}
 		<div class="tile dead">
-	<img src="/static/images/$displays[display]['current']" alt="">
-	
+	{% endif %}
+	<img src="/static/images/{{display.current}}" alt="">
+
 	<div class="tilelabel">
-	<a href="/display/$display">$displays[display]['name']</a><br>
-	$displays[display]['ip']
+	<a href="/display/{{display_name}}">{{display_name}}</a><br>
+	{{display.ip}}
 	</div>
-	    
 	</div><!-- End Image Tile -->
+{% endfor %}
 </div>
+{% endblock %}

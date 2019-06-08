@@ -1,11 +1,5 @@
-$def with (imagelist, pagetitle, current_image, displays, message)
-
-$if current_image == "unknown":
-    $var pagetitle = "%s - X" % pagetitle
-$else:
-    $var pagetitle = pagetitle
-$var displays = displays
-
+{% extends 'layout.html' %}
+{% block content %}
 <form name="slideshow" method="post">
 <fieldset>
 <input type="submit" value="PROJECT" class="slideshow-project">
@@ -13,24 +7,25 @@ $var displays = displays
 
 <div id="imagelist">
 
-$for image in imagelist:
-    $if image[0] == current_image:
-        <div class="tile active" data-image="$image[0]">
-    $else:
-        <div class="tile" data-image="$image[0]">
-
-    <img src="/static/images/$image[0]" alt="">
+{% for image in imagelist %}
+    {% if image[0] == current_image %}
+        <div class="tile active" data-image="{{image[0]}}">
+    {% else %}
+        <div class="tile" data-image="{{image[0]}}">
+    {% endif %}
+    <img src="/static/images/{{image[0]}}" alt="">
     <div class="actions">
-    	<div class="delete"><a href="/delete?image=$image[0]"><img src="/static/img/delete.png" alt="Delete"></a></div>
-    	<div class="rename"><a href="/rename?image=$image[0]"><img src="/static/img/rename.png" alt="Rename"></a></div>
+    	<div class="delete"><a href="/delete?image={{image[0]}}"><img src="/static/img/delete.png" alt="Delete"></a></div>
+    	<div class="rename"><a href="/rename?image={{image[0]}}"><img src="/static/img/rename.png" alt="Rename"></a></div>
     	<div class="project"><img src="/static/img/move.png" alt="Project"></div>
-    	<input class="slideshowcheck" type="checkbox" name="$image[0]" value="/static/images/$image[0]">
+    	<input class="slideshowcheck" type="checkbox" name="{{image[0]}}" value="/static/images/{{image[0]}}">
     </div>
-    
-    <div class="tilelabel"><a href="/static/images/$image[0]">$image[1]</a></div>
-        
-    </div><!-- End Image Tile -->
 
+    <div class="tilelabel">
+        <a href="/static/images/{{image[0]}}">{{image[1]}}</a></div>
+    </div><!-- End Image Tile -->
+{% endfor %}
 </div><!-- End Image List -->
 </fieldset>
 </form><!-- End Slideshow Form -->
+{% endblock %}
