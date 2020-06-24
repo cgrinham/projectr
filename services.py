@@ -25,7 +25,8 @@ def db_insert_image(filename):
 
     imageid = db.insert('images', filename=filename,
                         imagename=imagename, folder="")
-    logging.info(imageid)
+    logging.info("Added %s to the database as ID %d" % (imagename, imageid))
+    return filename
 
 
 def write_settings(data):

@@ -164,7 +164,6 @@ class Upload(MethodView):
                                message="")
 
     def post(self):
-
         if 'newimage' not in request.files:
             return
 
@@ -172,43 +171,12 @@ class Upload(MethodView):
         # replaces the windows-style slashes with linux ones.
         filepath = newimage.filename.replace('\\', '/')
         # splits the path and chooses the last part (the filename with extension)
-        imagename = filepath.split('/')[-1]
-        imagename, file_extension = os.path.splitext(imagename)
-
-        filename = "%s.jpg" % ''.join(random.choice('0123456789abcdef') for
-                                      i in range(16))
+        filename = filepath.split('/')[-1]
+        filename = services.db_insert_image(filename)
 
         newimagepath = os.path.join(settings.IMAGEDIR, filename)
         newimage.save(newimagepath)
-
-        logging.info("%s uploaded successfully" % imagename)
-        logging.info("Resizing %s" % imagename)
-
-        imageid = db.insert('images', filename=filename,
-                            imagename=imagename, folder="")
-        logging.info("Added %s to the database as ID %d" % (imagename, imageid))
-
-        try:
-            # open and convert to RGB
-            img = Image.open(newimagepath).convert('RGB')
-
-            # find ratio of new height to old height
-            hpercent = (float(settings.HEIGHT) / float(img.size[1]))
-            # apply ratio to create new width
-            wsize = int(float(img.size[0]) * hpercent)
-            # resize image with antialiasing
-            img = img.resize((int(wsize), int(settings.HEIGHT)), Image.ANTIALIAS)
-            # save with quality of 80, optimise setting caused crash
-            # Delete original (in case it is a different filetype)
-            # This needs to be changed!
-            os.remove(newimagepath)
-            newimagepath = os.path.splitext(newimagepath)[0] + ".jpg"
-            img.save(newimagepath, format='JPEG', quality=90)
-            logging.info("Sucessfully resized: %s \n" % newimagepath)
-        except IOError:
-            logging.info("IO Error. %s will be deleted and downloaded properly next sync" % newimagepath)
-            os.remove(newimagepath)
-
+        services.make_thumbnail(newimagepath)
         return redirect('/')
 app.add_url_rule('/upload', view_func=Upload.as_view('upload'))
 
