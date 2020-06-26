@@ -1,4 +1,5 @@
+numpy
 pi3d
-yaml
-pil
+Pillow
 flask
+flask_sqlalchemy

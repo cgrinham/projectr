@@ -13,57 +13,44 @@ import logging
 import time
 import argparse
 import multiprocessing
-import yaml
 
 # Networking
-import thread
+import threading
 import socket
 import pickle
 
-from . import networking
+import networking
+import services
 
 logging.basicConfig(
     filename="projector.log",
     level=logging.INFO,
     format='%(asctime)s %(thread)s %(levelname)-6s %(funcName)s:%(lineno)-5d %(message)s',
 )
+client_logger = logging.getLogger('client_handler')
+projectr_logger = logging.getLogger('projectr')
 
 IMAGEDIR = 'static/images/'
 ALPHA_STEP = 0.025
+# TCP config
+TCP_IP = "127.0.0.1"  # local only
+TCP_PORT = 5006
 
 
-# Use class for settings?
-def write_settings(process, data):
-    """Write the previous image to settings file"""
-    logging.info("Writing settings...")
-    with open('settings.yml', 'w') as outfile:
-        outfile.write(yaml.dump(data, default_flow_style=True))
-
-
-def read_settings(process):
-    logging.info("Read settings...")
-    try:
-        return yaml.load(open("settings.yml"))
-    except:
-        logging.exception("Could not read settings")
-        logging.info("Writing default settings file")
-        data = {
-                'slideshow': {'delay': 20, 'loop': True},
-                'fadeduration': 2,
-                'lastimage': u'static/images/logo.jpg',
-                'projectors': {
-                    'local': {
-                        'ip': '127.0.0.1',
-                        'port': 5006,
-                        'enabled': True,
-                        'name': 'Main',
-                        'current': '',
-                    }
-                }
-                }
-        with open('settings.yml', 'w') as outfile:
-            outfile.write(yaml.dump(data, default_flow_style=True))
-        return data
+DEFAULT_SETTINGS = {
+    'slideshow': {'delay': 20, 'loop': True},
+    'fadeduration': 2,
+    'lastimage': u'static/images/logo.jpg',
+    'projectors': {
+        'local': {
+            'ip': TCP_IP,
+            'port': TCP_PORT,
+            'enabled': True,
+            'name': 'Main',
+            'current': '',
+        }
+    }
+}
 
 
 def fit_image(input_texture, display):
@@ -71,28 +58,16 @@ def fit_image(input_texture, display):
     # Ripped this from demo, think I understand it
     # Pretty sure this bit resizes textureture to display size
     # Get ratio of display to textureture
-    x_ratio = display.width/input_texture.ix
-    y_ratio = display.height/input_texture.iy
+    x_ratio = display.width / input_texture.ix
+    y_ratio = display.height / input_texture.iy
     if y_ratio < x_ratio:  # if y ratio is smaller than x ratio
         x_ratio = y_ratio  # make the ratios the same
     width, height = input_texture.ix * x_ratio, input_texture.iy * x_ratio
     # width, height = tex.ix, tex.iy
-    x_position = (display.width - width)/2
-    y_position = (display.height - height)/2
+    x_position = (display.width - width) / 2
+    y_position = (display.height - height) / 2
 
     return width, height, x_position, y_position
-
-
-def list_files(directory, reverse=False):
-    """ Return list of files of specified type """
-    output = [f for f in os.listdir(directory) if
-              os.path.isfile(os.path.join(directory, f)) and
-              f.endswith(('.jpg', '.jpeg', '.png'))]
-
-    if reverse is True:
-        output.sort(key=lambda x: os.stat(os.path.join(directory, x)).st_mtime)
-        output.reverse()  # reverse image list so new files are first
-    return output
 
 
 """ PROCESSES """
@@ -102,7 +77,7 @@ def slideshow(imagelist, cur_queue, killslideshowq):
     """ run slideshow """
     process = "Slideshow Process"
 
-    settings = read_settings(process)
+    settings = services.read_settings('settings.json', default_settings=DEFAULT_SETTINGS)
     logging.info("Starting slideshow...")
     working = True
     while working:
@@ -136,7 +111,7 @@ def client_handler(connection, client_address, cur_queue):
             try:
                 data = pickle.loads(data)
                 logging.debug(data)
-            except TypeError as e:
+            except TypeError:
                 logging.exception("Failed to unpickle data")
 
             logging.info("Received TCP data: %s from %s" % (data, client_address))
@@ -158,19 +133,19 @@ def client_handler(connection, client_address, cur_queue):
                     logging.info("Nothing to project")
             elif data["action"] == "slideshow":
                 logging.info("Start Slideshow Process")
-                ssproc = multiprocessing.Process(target=slideshow,
-                                                 args=(data["images"],
-                                                       cur_queue,
-                                                       killslideshowq))
+                ssproc = multiprocessing.Process(
+                    target=slideshow, args=(data["images"],
+                                            cur_queue,
+                                            killslideshowq))
                 ssproc.start()
                 slideshowon = True
             elif data["action"] == "stopslideshow":
                 ssproc.terminate()
             elif data["action"] == "sync":
-                images = list_files(IMAGEDIR)
+                images = services.list_files(IMAGEDIR)
                 print(images)
             elif data["action"] == "whatsplaying":
-                settings = read_settings(process)
+                settings = services.read_settings('settings.json', default_settings=DEFAULT_SETTINGS)
                 networking.send_msg(connection, settings["lastimage"])
             else:
                 logging.info("Unkown action: %s", data["action"])
@@ -178,18 +153,12 @@ def client_handler(connection, client_address, cur_queue):
 
 def tcp_receiver(cur_queue, connections):
     """ Receive images via TCP """
-    # TCP config
-    tcp_ip = "127.0.0.1"  # local only
-    tcp_port = 5006
-
     # Set up TCP
     # Create a TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    logging.info('Starting up on %s port %s' % (tcp_ip, tcp_port))
-
+    logging.info('Starting up on %s port %s' % (TCP_IP, TCP_PORT))
     # bind server to address
-    sock.bind((tcp_ip, tcp_port))
+    sock.bind((TCP_IP, TCP_PORT))
     sock.listen(1)
 
     cons = {}
@@ -198,45 +167,52 @@ def tcp_receiver(cur_queue, connections):
         logging.info("Waiting for a connection...")
         # Not sure if this is really necessary however,
         # It gives the connection a unique number
-        # and adds it to the connactions dictionary
+        # and adds it to the connections dictionary
         con_number = str(len(connections) + 1)
         logging.debug(con_number)
         cons[con_number], client_address = sock.accept()
 
         logging.info("Starting a new thread for client %s", str(client_address))
-        thread.start_new_thread(client_handler, (cons[con_number],
-                                client_address, cur_queue))
-
+        threading.Thread(
+            target=client_handler,
+            args=(cons[con_number], client_address, cur_queue)
+        )
 
 
 class Carousel(object):
     """ The main object """
+    display_settings = {
+        "background": (0.0, 0.0, 0.0, 1.0), "frames_per_second": 20}
 
-    def __init__(self, display):
+    def __init__(self, test=False):
         self.imagedict = {}
         self.process = "Carousel"
+        if test:
+            self.display = pi3d.Display.create(
+                w=800, h=600, **self.display_settings)
+        else:
+            self.display = pi3d.Display.create(**self.display_settings)
         self.shader = pi3d.Shader("2d_flat")
-        self.display = display
-        # Load the last image used
-        try:
-            # If there is a settings file, load most recent image
-            settings = read_settings(self.process)
-            # Add the image to the queue
-            logging.info("Last image: %s" % settings["lastimage"])
-            starting_image = settings["lastimage"]
-        except:
-            logging.exception("Failed to load settings file")
-            logging.info("Loading default image")
-            # Write new image to settings
-            settings = read_settings(self.process)
-            settings["lastimage"] = "static/images/logo.jpg"
-            write_settings(self.process, settings)
-            settings = read_settings(self.process)
-            # Load default image into queue
-            starting_image = settings["lastimage"]
-
+        starting_image = self.get_starting_image()
         self.set_up_image(starting_image, 1, 0.1)
         self.focus = starting_image
+        # Set up camera
+        self.camera = pi3d.Camera.instance()
+        self.camera.was_moved = False
+        self.keyboard = pi3d.Keyboard()
+        self.image_queue = multiprocessing.Queue()
+
+    def get_starting_image(self):
+        # Load the last image used
+        # If there is a settings file, load most recent image
+        settings = services.read_settings(
+            settings_file='settings.json', default_settings=DEFAULT_SETTINGS)
+        if not settings:
+            services.write_settings(DEFAULT_SETTINGS, settings_file='settings.json')
+            settings = services.read_settings(
+                settings_file='settings.json', default_settings=DEFAULT_SETTINGS)
+        logging.info("Last image: %s" % settings["lastimage"])
+        return settings["lastimage"]
 
     def set_up_image(self, image, alpha, z_position):
         texture = pi3d.Texture(image, blend=True, mipmap=True)
@@ -281,14 +257,11 @@ class Carousel(object):
 
         self.focus = new_image  # Change the focused image
         # Write new image to settings
-        settings = read_settings(self.process)
-        settings["lastimage"] = new_image
-        write_settings(self.process, settings)
-        settings = read_settings(self.process)
+        services.update_setting('lastimage', new_image, file_name='settings.json')
 
     def update(self):
         """ Update image alphas """
-        for image, detail in self.imagedict.iteritems():
+        for image, detail in self.imagedict.items():
             alpha = detail["canvas"].alpha()
             if detail["fading"] and alpha < 1:
                 alpha += ALPHA_STEP
@@ -306,7 +279,7 @@ class Carousel(object):
         first_image = None
         second_image = None
 
-        for image, detail in self.imagedict.iteritems():
+        for image, detail in self.imagedict.items():
             if detail["visible"] and detail["fading"]:
                 first_image = detail["canvas"]
             elif detail["visible"]:
@@ -317,52 +290,41 @@ class Carousel(object):
         if second_image:
             second_image.draw()
 
+    def loop(self, tcpprocess, connections):
+        logging.info("Start Projector process")
+        while self.display.loop_running():
+            self.update()
+            self.draw()
 
-def main(test):
-    # Set up image queue
-    IMAGEQ = multiprocessing.Queue()
-    connections = multiprocessing.Manager().dict()
-
-    logging.info("Start TCP Receiver")
-    tcpprocess = multiprocessing.Process(target=tcp_receiver,
-                                         args=(IMAGEQ, connections))
-    tcpprocess.start()
-
-    logging.info("Start Projector process")
-    if test:
-        display = pi3d.Display.create(background=(0.0, 0.0, 0.0, 1.0),
-                                      frames_per_second=20, w=800, h=600)
-    else:
-        display = pi3d.Display.create(background=(0.0, 0.0, 0.0, 1.0),
-                                      frames_per_second=20)
-    crsl = Carousel()
-
-    # Set up camera
-    CAMERA = pi3d.Camera.instance()
-    CAMERA.was_moved = False
-    KEYBOARD = pi3d.Keyboard()
-
-    while display.loop_running():
-        crsl.update()
-        crsl.draw()
-
-        k = KEYBOARD.read()
-        if k > -1:
-            if k == 27:
-                KEYBOARD.close()
-                display.stop()
-                if len(connections) > 0:
+            k = self.keyboard.read()
+            if k > -1:
+                if k == 27:
+                    self.keyboard.close()
+                    self.display.stop()
                     for connection in connections:
                         logging.info("Close connnection %s" % connection)
                         connection.shutdown(socket.SHUT_RDWR)
                         connection.close()
-                tcpprocess.terminate()
+                    tcpprocess.terminate()
 
-        # Check if there is a new image to be displayed
-        if not IMAGEQ.empty():
-            new_image = IMAGEQ.get()
-            logging.info("New image is: %s", new_image)
-            crsl.pick(new_image)
+            # Check if there is a new image to be displayed
+            if not self.image_queue.empty():
+                new_image = self.image_queue.get()
+                logging.info("New image is: %s", new_image)
+                self.pick(new_image)
+
+
+def main(test):
+    # Set up image queue
+    connections = multiprocessing.Manager().dict()
+
+    crsl = Carousel(test)
+    logging.info("Start TCP Receiver")
+    tcpprocess = multiprocessing.Process(target=tcp_receiver,
+                                         args=(crsl.image_queue, connections))
+    tcpprocess.start()
+
+    crsl.loop(tcpprocess, connections)
 
 
 if __name__ == "__main__":

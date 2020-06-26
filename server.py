@@ -2,13 +2,12 @@
 """ Web interface for the projector """
 import logging
 import os
-import random
 import socket
 from flask import Flask, render_template, request, redirect
 from flask.views import MethodView
-from PIL import Image
 import settings
 import services
+from . import networking
 from orm import db
 
 
@@ -36,16 +35,16 @@ class Index(MethodView):
 
         # Ask screen what is currently displayed
         message = {"action": "whatsplaying"}
-        services.send_msg_to_display(display, message)
+        networking.send_msg_to_display(display, message)
 
         # Wait for reply
         try:
-            current_image = services.recv_msg(services.connections[display])
+            current_image = networking.recv_msg(services.connections[display])
             logging.info("Received TCP data: %s from %s" %
                          (current_image, services.connections[display]))
         except socket.timeout:
             logging.info("No reply, socket timed out")
-        except KeyError as e:
+        except KeyError:
             logging.info("Display not found")
 
         images = services.db_list_images()
@@ -76,7 +75,7 @@ class Index(MethodView):
             logging.info("action: %s, prop1: %s, prop2: %s" % (action, prop1, prop2))
             message = {"action": "project",
                        "images": [os.path.join(settings.IMAGEDIR, prop1)]}
-            services.send_msg_to_display(display, message)
+            networking.send_msg_to_display(display, message)
             logging.info("Image to be projected is %s" % prop1)
             services.PROJECTRS[display]["current"] = prop1
             return True
@@ -84,7 +83,7 @@ class Index(MethodView):
             # TODO: This doesn't work at all
             imagelist = [v for k, v in request.args.iteritems() if k != "action"]
             message = {"action": "slideshow", "images": imagelist}
-            services.send_msg_to_display(display, message)
+            networking.send_msg_to_display(display, message)
             return redirect('/')
         else:
             logging.info("Unknown Action %s" % action)
@@ -129,21 +128,21 @@ class Delete(MethodView):
         try:
             os.remove(os.path.join(settings.IMAGEDIR, image))
             logging.info("%s deleted" % image)
-        except OSError as e:
+        except OSError:
             logging.exception("Deleting %s failed" % image)
-        db.delete('images', where="filename=$image", vars=locals())
+        else:
+            services.db_delete_image(image)
         return redirect('/')
 app.add_url_rule('/delete', view_func=Delete.as_view('delete'))
 
 
 class Rename(MethodView):
     def get(self):
-        image = request.args["image"]
-        imagename = db.select('images', where="filename=$image",
-                              vars=locals())[0]["imagename"]
+        filename = request.args["image"]
+        imagename = services.db_get_image(filename)[0]["imagename"]
         return render_template("rename.html",
                                pagetitle="Rename",
-                               image=image,
+                               image=filename,
                                displays=services.PROJECTRS,
                                message=imagename)
 
@@ -195,7 +194,7 @@ class Displays(MethodView):
     def post(self):
         display = request.args["prop1"]
         message = {"action": "sync"}
-        services.send_msg_to_display(display, message)
+        networking.send_msg_to_display(display, message)
         logging.info("sync %s" % display)
 app.add_url_rule('/displays', view_func=Displays.as_view('displays'))
 
@@ -216,7 +215,7 @@ class Shutdown(MethodView):
             message = {"action": "project",
                        "images": ['static/img/shutdown.jpg']}
             # Should probably cycle through display and switch them off
-            services.send_msg_to_display("local", message)
+            networking.send_msg_to_display("local", message)
             os.system("poweroff")
         else:
             logging.info("Don't shutdown")
@@ -226,10 +225,7 @@ app.add_url_rule('/shutdown', view_func=Shutdown.as_view('shutdown'))
 
 class Videos(MethodView):
     def get(self):
-        videolist = [f for f in os.listdir(settings.VIDEODIR) if
-                     os.path.isfile(os.path.join(settings.VIDEODIR, f)) and
-                     f.endswith(('.mp4', '.webm'))]
-
+        videolist = services.list_files(settings.VIDEODIR, video=True)
         logging.info("User accessed index")
         return render_template("videos.html",
                                videolist=videolist,
@@ -248,7 +244,7 @@ class Videos(MethodView):
             logging.info("action: %s, prop1: %s, prop2: %s" % (action, prop1, prop2))
             message = {"action": "project",
                        "video": [os.path.join(settings.VIDEODIR, prop1)]}
-            services.send_msg_to_display(display, message)
+            networking.send_msg_to_display(display, message)
             logging.info("video to be projected is %s" % prop1)
             return True
         else:
