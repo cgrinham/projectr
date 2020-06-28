@@ -24,11 +24,17 @@ import services
 
 logging.basicConfig(
     filename="projector.log",
-    level=logging.INFO,
     format='%(asctime)s %(thread)s %(levelname)-6s %(funcName)s:%(lineno)-5d %(message)s',
 )
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
 client_logger = logging.getLogger('client_handler')
+client_logger.setLevel(logging.DEBUG)
+client_logger.addHandler(logging.StreamHandler())
 projectr_logger = logging.getLogger('projectr')
+projectr_logger.setLevel(logging.DEBUG)
+projectr_logger.addHandler(logging.StreamHandler())
 
 IMAGEDIR = 'static/images/'
 ALPHA_STEP = 0.025
@@ -78,7 +84,7 @@ def slideshow(imagelist, cur_queue, killslideshowq):
     process = "Slideshow Process"
 
     settings = services.read_settings('settings.json', default_settings=DEFAULT_SETTINGS)
-    logging.info("Starting slideshow...")
+    client_logger.info("Starting slideshow...")
     working = True
     while working:
         for image in imagelist:
@@ -86,10 +92,10 @@ def slideshow(imagelist, cur_queue, killslideshowq):
             if not killslideshowq.empty():
                 emptyq = killslideshowq.get()
                 if emptyq == "die":
-                    logging.info("Killing slideshow")
+                    client_logger.info("Killing slideshow")
                     working = False  # Make sure while loop breaks
                     break  # break out of for loop
-            logging.info("Slideshow: %s", image)
+            client_logger.info("Slideshow: %s", image)
             cur_queue.put(image)
             time.sleep(settings["slideshow"]["delay"] + settings["fadeduration"])
 
@@ -99,26 +105,26 @@ def client_handler(connection, client_address, cur_queue):
     # Is there a slideshow running?
     slideshowon = False
     killslideshowq = multiprocessing.Queue()
-    logging.info("Connected to Master")
+    client_logger.info("Connected to Master")
     while True:
         # buffer size is 1024 bytes
         data = networking.recv_msg(connection)
 
         if data == "alive":
-            logging.info("Alive?")
+            client_logger.info("Alive?")
             networking.send_msg(connection, "alive")
         else:
             try:
                 data = pickle.loads(data)
-                logging.debug(data)
+                client_logger.debug(data)
             except TypeError:
-                logging.exception("Failed to unpickle data")
+                client_logger.exception("Failed to unpickle data")
 
-            logging.info("Received TCP data: %s from %s" % (data, client_address))
+            client_logger.info("Received TCP data: %s from %s" % (data, client_address))
 
             if slideshowon:
                 # If slideshow is running, kill it
-                logging.info("Tell Slideshow process to die")
+                client_logger.info("Tell Slideshow process to die")
                 # Tell slideshow to die
                 killslideshowq.put("die")
                 slideshowon = False
@@ -128,11 +134,11 @@ def client_handler(connection, client_address, cur_queue):
                     cur_queue.put(data["images"][0])
                     slideshowon = False
                 elif "video" in data:
-                    logging.info("Video to project is %s", data["video"])
+                    client_logger.info("Video to project is %s", data["video"])
                 else:
-                    logging.info("Nothing to project")
+                    client_logger.info("Nothing to project")
             elif data["action"] == "slideshow":
-                logging.info("Start Slideshow Process")
+                client_logger.info("Start Slideshow Process")
                 ssproc = multiprocessing.Process(
                     target=slideshow, args=(data["images"],
                                             cur_queue,
@@ -148,7 +154,7 @@ def client_handler(connection, client_address, cur_queue):
                 settings = services.read_settings('settings.json', default_settings=DEFAULT_SETTINGS)
                 networking.send_msg(connection, settings["lastimage"])
             else:
-                logging.info("Unkown action: %s", data["action"])
+                client_logger.info("Unkown action: %s", data["action"])
 
 
 def tcp_receiver(cur_queue, connections):
@@ -156,7 +162,7 @@ def tcp_receiver(cur_queue, connections):
     # Set up TCP
     # Create a TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    logging.info('Starting up on %s port %s' % (TCP_IP, TCP_PORT))
+    client_logger.info('Starting up on %s port %s' % (TCP_IP, TCP_PORT))
     # bind server to address
     sock.bind((TCP_IP, TCP_PORT))
     sock.listen(1)
@@ -164,15 +170,15 @@ def tcp_receiver(cur_queue, connections):
     cons = {}
 
     while True:
-        logging.info("Waiting for a connection...")
+        client_logger.info("Waiting for a connection...")
         # Not sure if this is really necessary however,
         # It gives the connection a unique number
         # and adds it to the connections dictionary
         con_number = str(len(connections) + 1)
-        logging.debug(con_number)
+        client_logger.debug(con_number)
         cons[con_number], client_address = sock.accept()
 
-        logging.info("Starting a new thread for client %s", str(client_address))
+        client_logger.info("Starting a new thread for client %s", str(client_address))
         threading.Thread(
             target=client_handler,
             args=(cons[con_number], client_address, cur_queue)
@@ -211,7 +217,7 @@ class Carousel(object):
             services.write_settings(DEFAULT_SETTINGS, settings_file='settings.json')
             settings = services.read_settings(
                 settings_file='settings.json', default_settings=DEFAULT_SETTINGS)
-        logging.info("Last image: %s" % settings["lastimage"])
+        projectr_logger.info("Last image: %s" % settings["lastimage"])
         return settings["lastimage"]
 
     def set_up_image(self, image, alpha, z_position):
@@ -229,7 +235,7 @@ class Carousel(object):
     def pick(self, new_image):
         """ Pick an image by URL """
         if self.focus == new_image:
-            logging.warning("Image already projected")
+            projectr_logger.warning("Image already projected")
             return
 
         # Check to see if image already in dictionary
@@ -291,7 +297,7 @@ class Carousel(object):
             second_image.draw()
 
     def loop(self, tcpprocess, connections):
-        logging.info("Start Projector process")
+        projectr_logger.info("Start Projector process")
         while self.display.loop_running():
             self.update()
             self.draw()
@@ -302,7 +308,7 @@ class Carousel(object):
                     self.keyboard.close()
                     self.display.stop()
                     for connection in connections:
-                        logging.info("Close connnection %s" % connection)
+                        projectr_logger.info("Close connnection %s" % connection)
                         connection.shutdown(socket.SHUT_RDWR)
                         connection.close()
                     tcpprocess.terminate()
@@ -310,7 +316,7 @@ class Carousel(object):
             # Check if there is a new image to be displayed
             if not self.image_queue.empty():
                 new_image = self.image_queue.get()
-                logging.info("New image is: %s", new_image)
+                projectr_logger.info("New image is: %s", new_image)
                 self.pick(new_image)
 
 
@@ -319,7 +325,7 @@ def main(test):
     connections = multiprocessing.Manager().dict()
 
     crsl = Carousel(test)
-    logging.info("Start TCP Receiver")
+    logger.info("Start TCP Receiver")
     tcpprocess = multiprocessing.Process(target=tcp_receiver,
                                          args=(crsl.image_queue, connections))
     tcpprocess.start()
@@ -328,7 +334,7 @@ def main(test):
 
 
 if __name__ == "__main__":
-    logging.info("Christie's Projector")
+    logger.info("Christie's Projector")
     parser = argparse.ArgumentParser(description='Project images.')
     parser.add_argument("-t", "--test",
                         help="Run projector in a window for testing",

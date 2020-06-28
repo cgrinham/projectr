@@ -5,34 +5,29 @@ import random
 import json
 from PIL import Image
 import settings
-from orm import db
 
 
-def db_get_image(filename):
+def db_get_image(db, filename):
     return db.select(
         'images',
         where="filename=$filename",
         vars=locals())
 
 
-def db_delete_image(filename):
+def db_delete_image(db, filename):
     db.delete('images', where="filename=$filename", vars=locals())
 
 
-def db_list_images():
+def db_list_images(db, ):
     """ List images in database """
     return db.select('images')
 
 
-def db_insert_image(filename):
-    """ Insert an image into the database """
-    imagename, file_extension = os.path.splitext(filename)
-    filename = "%s.jpg" % ''.join(random.choice('0123456789abcdef') for
-                                  i in range(16))
-
-    imageid = db.insert('images', filename=filename,
-                        imagename=imagename, folder="")
-    logging.info("Added %s to the database as ID %d" % (imagename, imageid))
+def rename_image(filename):
+    """ Rename files with random string to ensure there are no clashes """
+    randomstring = random.getrandbits(16)
+    filename = filename[:-4] + '_' + str(randomstring) + filename[-4:]
+    logging.info(filename)
     return filename
 
 
@@ -72,13 +67,6 @@ def update_setting(setting_name, value, file_name='uisettings.json'):
 def get_setting(setting_name, file_name='uisettings.json'):
     settings = read_settings(settings_file=file_name)
     return settings[setting_name]
-
-
-def rename_image(filename):
-    """ Rename files with random string to ensure there are no clashes """
-    randomstring = random.getrandbits(16)
-    filename = filename[:-4] + '_' + str(randomstring) + filename[-4:]
-    logging.info(filename)
 
 
 def make_thumbnail(imagepath):
