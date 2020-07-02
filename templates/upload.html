@@ -1,9 +1,5 @@
-$def with (pagetitle, displays, message)
-
-$var pagetitle = pagetitle
-$var displays = displays
-
-
+{% extends 'layout.html' %}
+{% block content %}
 <form method="POST" enctype="multipart/form-data" action="upload">
 	<fieldset class="align-center vertical-padding-40">
 		<p>Please avoid any files with special characters in their names.</p>
@@ -11,3 +7,4 @@ $var displays = displays
 		<input type="submit" value="Submit">
 	</fieldset>
 </form>
+{% endblock %}

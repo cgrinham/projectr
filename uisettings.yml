@@ -1,0 +1,5 @@
+{!!python/unicode 'fadeduration': 2, !!python/unicode 'lastimage': !!python/unicode 'static/images/logo.jpg',
+  !!python/unicode 'projectors': {!!python/unicode 'local': {!!python/unicode 'current': !!python/unicode '',
+      !!python/unicode 'enabled': true, !!python/unicode 'ip': !!python/unicode '127.0.0.1',
+      !!python/unicode 'name': !!python/unicode 'Main', !!python/unicode 'port': 5006}},
+  !!python/unicode 'slideshow': {!!python/unicode 'delay': 20, !!python/unicode 'loop': true}}

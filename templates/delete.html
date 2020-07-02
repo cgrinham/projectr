@@ -1,14 +1,11 @@
-$def with (pagetitle, displays, image)
-
-$var pagetitle = pagetitle
-$var displays = displays
-
-
+{% extends 'layout.html' %}
+{% block content %}
 <form method="POST" enctype="multipart/form-data" action="delete">
 	<fieldset>
-		<input type="hidden" name="image" value="$image">
-		Delete $image?
+		<input type="hidden" name="image" value="{{image}}">
+		Delete {{image}}?
 		<br><br>
 		<input type="submit" value="Delete">
 	</fieldset>
 </form>
+{% endblock %}

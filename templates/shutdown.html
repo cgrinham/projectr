@@ -1,9 +1,5 @@
-$def with (pagetitle, displays, message)
-
-$var pagetitle = pagetitle
-$var displays = displays
-
-
+{% extends 'layout.html' %}
+{% block content %}
 <form method="POST" enctype="multipart/form-data" action="shutdown" id="shutdownform">
 	<fieldset>
 		<button class="shutdownsubmit" data-choice="true">Shutdown</button><button class="shutdownsubmit" data-choice="false">Cancel</button>
@@ -11,3 +7,4 @@ $var displays = displays
 		<input class="hidden" type="submit" value="Submit">
 	</fieldset>
 </form>
+{% endblock %}

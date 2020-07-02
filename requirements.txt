@@ -1,0 +1,5 @@
+numpy
+pi3d
+Pillow
+flask
+flask_sqlalchemy
