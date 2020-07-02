@@ -18,7 +18,7 @@ def db_delete_image(db, filename):
     db.delete('images', where="filename=$filename", vars=locals())
 
 
-def db_list_images(db, ):
+def db_list_images(db, filename):
     """ List images in database """
     return db.select('images')
 
